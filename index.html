@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="icon" type="image/png" href="icons/icon-192.png">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="다국어 성경">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#fbf9f5">
+<title>다국어 성경</title>
+<style>
+:root{
+  --bg:#fbf9f5; --panel:#ffffff; --ink:#1f1d1a; --muted:#857f75; --line:#e7e2d8;
+  --accent:#8a5a2b; --accent-soft:#f3e9dc; --hl:#fff3cf; --rl:#a1301f; --on-accent:#fff;
+  --fs:18px; --top:env(safe-area-inset-top,0px); --bot:env(safe-area-inset-bottom,0px);
+}
+html[data-theme=white]{--bg:#ffffff;--panel:#ffffff;--ink:#1a1a1a;--muted:#7a7a7a;--line:#e6e6e6;--accent-soft:#f2ece4;--hl:#fff4cc}
+html[data-theme=sepia]{--bg:#f4ecd8;--panel:#fbf5e6;--ink:#3b2f1e;--muted:#8a7a5f;--line:#e2d6ba;--accent-soft:#eadcbc;--hl:#f6e3a6;--rl:#9b2c1a}
+html[data-theme=green]{--bg:#e8f1e4;--panel:#f5faf3;--ink:#1f2a1e;--muted:#6f7f6b;--line:#d0dfca;--accent:#3f6b3a;--accent-soft:#d9e8d3;--hl:#f4f0c2}
+html[data-theme=gray]{--bg:#ecedef;--panel:#f7f7f8;--ink:#1d1f23;--muted:#7b7f87;--line:#d9dbe0;--accent:#4a5a78;--accent-soft:#dfe3ec;--hl:#fbf1c7}
+html[data-theme=dark]{--bg:#17161a;--panel:#211f24;--ink:#e6e1d8;--muted:#8e877c;--line:#34313a;--accent:#d6a46d;--accent-soft:#2f2a24;--hl:#3a3326;--rl:#e0806f;--on-accent:#17161a}
+html[data-theme=black]{--bg:#000000;--panel:#121212;--ink:#d8d4cc;--muted:#7f796f;--line:#262626;--accent:#d6a46d;--accent-soft:#2a241d;--hl:#2d2818;--rl:#e0806f;--on-accent:#000}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink);-webkit-text-size-adjust:100%}
+body{font-family:-apple-system,"Segoe UI","Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",sans-serif}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+
+/* ---------- top: language chips ---------- */
+header{position:sticky;top:0;z-index:20;background:var(--bg);border-bottom:1px solid var(--line);padding-top:var(--top)}
+.chips{display:flex;gap:6px;padding:8px 10px;max-width:760px;margin:0 auto;overflow-x:auto;scrollbar-width:none;touch-action:pan-x}
+.chips::-webkit-scrollbar{display:none}
+.chip{flex:1 1 0;min-width:72px;max-width:170px;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1.15;padding:5px 6px;border-radius:14px;border:1px solid var(--line);font-size:14px;color:var(--muted);background:var(--panel);
+  user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;transition:box-shadow .15s,transform .15s}
+.chip.on{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+.chip.off-data{opacity:.5}
+.chip .sub{font-size:10.5px;opacity:.85;margin-top:1px;white-space:nowrap}
+.chip.drag{transition:none;box-shadow:0 6px 18px rgba(0,0,0,.25);z-index:5;position:relative;transform-origin:center}
+.chips.sorting .chip:not(.drag){transition:transform .12s}
+
+/* ---------- bottom: navigation bar ---------- */
+nav.bottom{position:fixed;left:0;right:0;bottom:0;z-index:30;background:var(--panel);border-top:1px solid var(--line);padding-bottom:var(--bot);box-shadow:0 -4px 16px rgba(0,0,0,.05)}
+.bar{display:flex;align-items:center;gap:4px;padding:6px 8px;max-width:760px;margin:0 auto}
+.nav{width:48px;height:48px;border-radius:12px;font-size:24px;color:var(--muted);flex:none}
+.nav:active,.nav:hover{background:var(--accent-soft);color:var(--accent)}
+#where{flex:1;min-width:0;text-align:center;font-weight:650;font-size:17px;padding:6px 8px;border-radius:12px;letter-spacing:-.01em}
+#where span,#where small{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#where small{font-weight:400;font-size:12px;color:var(--muted);margin-top:1px}
+#where:hover,#where:active{background:var(--accent-soft)}
+.icon{width:48px;height:48px;border-radius:12px;color:var(--muted);display:grid;place-items:center;flex:none}
+.icon:hover,.icon:active{background:var(--accent-soft);color:var(--accent)}
+
+/* ---------- reading area ---------- */
+main{max-width:1400px;margin:0 auto;padding:6px 10px calc(96px + var(--bot))}
+.colhead{display:grid;gap:18px;position:sticky;z-index:10;background:var(--bg);padding:8px 6px 6px;border-bottom:1px solid var(--line);font-size:12px;color:var(--muted);letter-spacing:.04em}
+.row{display:grid;gap:18px;padding:10px 6px;border-radius:10px;scroll-margin-top:110px}
+.row + .row{border-top:1px solid color-mix(in srgb,var(--line) 60%,transparent)}
+.row.sel{background:var(--hl);border-color:transparent}
+.cell{font-size:var(--fs);line-height:1.75;min-width:0;overflow-wrap:anywhere}
+.vn{font-size:.62em;font-weight:700;color:var(--accent);margin-right:.35em;vertical-align:.25em;font-family:-apple-system,sans-serif}
+.cell[lang=ja]{font-family:"Hiragino Mincho ProN","Yu Mincho","YuMincho","Noto Serif JP","Noto Serif CJK JP",serif;line-height:2.05}
+.cell[lang=zh]{font-family:"PingFang TC","Microsoft JhengHei","Noto Serif TC","Noto Serif CJK TC",serif}
+.cell[lang=en]{font-family:Georgia,"Times New Roman",serif;line-height:1.65}
+.cell[lang=ko]{font-family:"Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",sans-serif;word-break:keep-all;overflow-wrap:break-word}
+rt{font-size:.52em;color:inherit;font-weight:400;user-select:none}
+body.noruby rt{display:none}
+.pt{display:block;font-size:.82em;color:var(--muted);font-style:italic;margin-bottom:.3em}
+.pt rt{color:var(--muted)}
+.rl{color:inherit}
+body.redletter .rl{color:var(--rl)}
+.sp{font-style:italic}
+.merged,.missing{color:var(--muted);font-size:.8em}
+sup{font-size:.6em;color:var(--muted)}
+.cell .lt,.rvn{display:none}
+body.stack .colhead{display:none}
+body.stack .row{display:block}
+body.stack .rvn{display:block;font:700 13px/1 -apple-system,sans-serif;color:var(--accent);margin:2px 0 8px}
+body.stack .vn{display:none}
+body.stack .cell{padding:2px 0}
+body.stack .cell + .cell{margin-top:6px;padding-top:6px;border-top:1px dashed var(--line)}
+body.stack .cell .lt{display:inline-block;font:600 10px/1 -apple-system,sans-serif;color:var(--muted);border:1px solid var(--line);border-radius:4px;padding:2px 4px;margin-right:6px;vertical-align:.3em}
+.loading{padding:60px 0;text-align:center;color:var(--muted)}
+.dl{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(72px + var(--bot));z-index:25;background:var(--ink);color:var(--bg);font-size:13px;padding:7px 14px;border-radius:999px;box-shadow:0 4px 14px rgba(0,0,0,.18);white-space:nowrap;opacity:.92;transition:opacity .4s}
+.dl[hidden]{display:none}
+.dlbar{display:inline-block;width:70px;height:4px;border-radius:2px;background:color-mix(in srgb,var(--bg) 30%,transparent);vertical-align:middle;margin-left:8px;overflow:hidden}
+.dlbar i{display:block;height:100%;background:var(--bg);width:0}
+.offbtn{padding:7px 12px;border:1px solid var(--line);border-radius:9px;font-size:13px;color:var(--accent);flex:none}
+
+/* ---------- overlays ---------- */
+.ov{position:fixed;inset:0;z-index:50;background:rgba(0,0,0,.35);display:none}
+.ov.open{display:block}
+.sheet{position:absolute;left:0;right:0;bottom:0;max-height:86vh;background:var(--panel);border-radius:18px 18px 0 0;display:flex;flex-direction:column;box-shadow:0 -10px 40px rgba(0,0,0,.18);max-width:760px;margin:0 auto;padding-bottom:var(--bot)}
+.sh-head{display:flex;align-items:center;gap:8px;padding:14px 16px 10px;border-bottom:1px solid var(--line)}
+.sh-head h2{margin:0;font-size:17px;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.seg{display:inline-flex;flex:none;background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:3px}
+.seg button{white-space:nowrap;padding:6px 12px;border-radius:7px;font-size:14px;color:var(--muted)}
+.seg button.on{background:var(--panel);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.14);font-weight:600}
+.sh-body{overflow:auto;padding:14px 16px 22px;-webkit-overflow-scrolling:touch}
+.grp{font-size:12px;color:var(--muted);margin:18px 6px 6px;letter-spacing:.05em}
+.grp:first-child{margin-top:0}
+.blist{}
+.bi{}
+.bh{display:flex;align-items:baseline;gap:8px;width:100%;text-align:left;padding:11px 6px;font-size:16px;border-radius:10px}
+.bh b{font-weight:600;flex:none;max-width:60%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bh .sep{color:var(--line);flex:none}
+.bh span{color:var(--muted);font-size:14px;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bh .cc{flex:none;margin-left:auto;font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
+.bh .chev{flex:none;color:var(--muted);transition:transform .15s;font-size:13px}
+.bi.open .bh .chev{transform:rotate(90deg)}
+.bi.cur .bh b{color:var(--accent)}
+.bh:active{background:var(--accent-soft)}
+.bi .chs{display:none;padding:2px 2px 14px}
+.bi.open .chs{display:grid}
+.chs{display:grid;grid-template-columns:repeat(auto-fill,minmax(52px,1fr));gap:7px}
+.chs button{padding:12px 0;border:1px solid var(--line);border-radius:10px;background:var(--bg);font-size:15px}
+.chs button.cur{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+.chs button:hover{border-color:var(--accent)}
+.back{font-size:14px;color:var(--accent);padding:6px 8px;border-radius:8px;flex:none}
+.x{width:36px;height:36px;border-radius:9px;font-size:22px;color:var(--muted);flex:none}
+.set{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:13px 2px;border-bottom:1px solid var(--line);font-size:15px}
+.set:last-child{border-bottom:0}
+.set.col{flex-direction:column;align-items:stretch}
+.set .hint{display:block;font-size:12px;color:var(--muted);margin-top:2px}
+.sw{position:relative;width:46px;height:28px;border-radius:99px;background:var(--line);flex:none;transition:.15s}
+.sw::after{content:"";position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;background:#fff;transition:.15s;box-shadow:0 1px 2px rgba(0,0,0,.25)}
+.sw.on{background:var(--accent)}
+.sw.on::after{left:21px}
+.fsz{display:flex;align-items:center;gap:6px}
+.fsz button{width:38px;height:36px;border:1px solid var(--line);border-radius:9px;font-size:16px}
+.fsz span{min-width:34px;text-align:center;font-variant-numeric:tabular-nums}
+.themes{display:grid;grid-template-columns:repeat(auto-fill,minmax(44px,1fr));gap:10px 4px;margin-top:10px}
+.th{display:flex;flex-direction:column;align-items:center;gap:5px;font-size:11px;color:var(--muted);white-space:nowrap}
+.th i{display:block;width:36px;height:36px;border-radius:50%;border:1px solid rgba(0,0,0,.15);position:relative}
+.th i::after{content:"가";position:absolute;inset:0;display:grid;place-items:center;font:600 15px/1 -apple-system,sans-serif;font-style:normal}
+.th.on i{outline:2.5px solid var(--accent);outline-offset:2px}
+.th.on{color:var(--ink);font-weight:600}
+</style>
+</head>
+<body class="redletter">
+<header><div class="chips" id="chips"></div></header>
+
+<main id="main"><div class="loading">불러오는 중…</div></main>
+<div class="dl" id="dl" hidden></div>
+
+<nav class="bottom">
+  <div class="bar">
+    <button class="nav" id="prev" aria-label="이전 장">‹</button>
+    <button id="where"><span id="whereMain">…</span><small id="whereSub"></small></button>
+    <button class="nav" id="next" aria-label="다음 장">›</button>
+    <button class="icon" id="openSet" aria-label="설정">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="17" x2="20" y2="17"/><circle cx="9" cy="7" r="2.4" fill="var(--panel)"/><circle cx="15" cy="17" r="2.4" fill="var(--panel)"/></svg>
+    </button>
+  </div>
+</nav>
+
+<!-- book / chapter chooser -->
+<div class="ov" id="ovBook">
+  <div class="sheet">
+    <div class="sh-head">
+      <h2 id="chooserTitle">책 선택</h2>
+      <div class="seg" id="testSeg"><button data-t="ot">구약</button><button data-t="nt">신약</button></div>
+      <button class="x" data-close>×</button>
+    </div>
+    <div class="sh-body" id="chooserBody"></div>
+  </div>
+</div>
+
+<!-- settings -->
+<div class="ov" id="ovSet">
+  <div class="sheet">
+    <div class="sh-head"><h2>보기 설정</h2><button class="x" data-close>×</button></div>
+    <div class="sh-body">
+      <div class="set col"><div>배경 색</div><div class="themes" id="themes"></div></div>
+      <div class="set"><div>배치<span class="hint">나란히: 언어별 열 · 세로: 절마다 언어를 위아래로</span></div>
+        <div class="seg" id="layoutSeg"><button data-l="auto">자동</button><button data-l="side">나란히</button><button data-l="stack">세로</button></div></div>
+      <div class="set"><div>영어 번역본<span class="hint">KJV 흠정역 · WEB 현대 영어</span></div>
+        <div class="seg" id="enSeg"><button data-e="kjv">KJV</button><button data-e="web">WEB</button></div></div>
+      <div class="set"><div>후리가나 (ふりがな)</div><button class="sw" id="swRuby"></button></div>
+      <div class="set"><div>예수님 말씀 빨간 글씨<span class="hint">영어 본문에만 표시됩니다</span></div><button class="sw" id="swRed"></button></div>
+      <div class="set"><div>글자 크기</div><div class="fsz"><button id="fsDown">−</button><span id="fsVal">18</span><button id="fsUp">+</button></div></div>
+      <div class="set"><div>오프라인 저장<span class="hint" id="offState">확인 중…</span></div><button class="offbtn" id="offRetry" hidden>다시 저장</button></div>
+      <div class="set"><div>언어 순서<span class="hint">위쪽 언어 버튼을 길게 누른 채 좌우로 끌면 순서가 바뀝니다. 맨 앞 언어가 책 이름의 기본 언어가 됩니다.</span></div></div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+"use strict";
+const KO=["창세기","출애굽기","레위기","민수기","신명기","여호수아","사사기","룻기","사무엘상","사무엘하","열왕기상","열왕기하","역대상","역대하","에스라","느헤미야","에스더","욥기","시편","잠언","전도서","아가","이사야","예레미야","예레미야애가","에스겔","다니엘","호세아","요엘","아모스","오바댜","요나","미가","나훔","하박국","스바냐","학개","스가랴","말라기","마태복음","마가복음","누가복음","요한복음","사도행전","로마서","고린도전서","고린도후서","갈라디아서","에베소서","빌립보서","골로새서","데살로니가전서","데살로니가후서","디모데전서","디모데후서","디도서","빌레몬서","히브리서","야고보서","베드로전서","베드로후서","요한일서","요한이서","요한삼서","유다서","요한계시록"];
+const GROUPS=[["모세오경",0,5],["역사서",5,17],["시가서",17,22],["대선지서",22,27],["소선지서",27,39],["복음서·사도행전",39,44],["바울서신",44,57],["일반서신",57,65],["예언서",65,66]];
+const LANG={
+  ja:{label:"日本語",sub:"口語訳",lang:"ja",chap:(n,c)=>`${n} ${c}章`},
+  en:{label:"English",lang:"en",chap:(n,c)=>`${n} ${c}`},
+  ko:{label:"한국어",sub:"개역한글",lang:"ko",chap:(n,c)=>`${n} ${c}장`},
+  zh:{label:"中文",sub:"和合本",lang:"zh",chap:(n,c)=>`${n} 第${c}章`}
+};
+const THEMES=[["ivory","아이보리","#fbf9f5","#1f1d1a"],["white","흰색","#ffffff","#1a1a1a"],["sepia","세피아","#f4ecd8","#3b2f1e"],["green","연녹색","#e8f1e4","#1f2a1e"],["gray","회색","#ecedef","#1d1f23"],["dark","어둡게","#17161a","#e6e1d8"],["black","검정","#000000","#d8d4cc"]];
+
+const store={get(k,d){try{const v=localStorage.getItem("bible."+k);return v==null?d:JSON.parse(v)}catch(e){return d}},
+             set(k,v){try{localStorage.setItem("bible."+k,JSON.stringify(v))}catch(e){}}};
+const S={
+  book:store.get("book",1), ch:store.get("ch",1),
+  cols:store.get("cols",{ja:true,en:true,ko:true,zh:true}),
+  order:store.get("order",["ja","en","ko","zh"]),
+  en:store.get("en","kjv"), layout:store.get("layout","auto"),
+  ruby:store.get("ruby",true), red:store.get("red",true),
+  theme:store.get("theme",store.get("dark",false)?"dark":"ivory"),
+  fs:store.get("fs",18)
+};
+if(!Array.isArray(S.order)||S.order.length!==4||!["ja","en","ko","zh"].every(x=>S.order.includes(x))) S.order=["ja","en","ko","zh"];
+let META=null; const cache=new Map(); let sel=null;
+const $=id=>document.getElementById(id);
+function save(){for(const k of["cols","order","en","layout","ruby","red","theme","fs"]) store.set(k,S[k])}
+
+function fetchBook(n){
+  if(cache.has(n)) return cache.get(n);
+  const p=fetch("data/"+String(n).padStart(2,"0")+".json").then(r=>{if(!r.ok)throw new Error(r.status);return r.json()});
+  cache.set(n,p); p.catch(()=>cache.delete(n)); return p;
+}
+const ruby=s=>s.replace(/｜([^《｜]+)《([^》]+)》/g,"<ruby>$1<rt>$2</rt></ruby>");
+function verseHTML(lang,txt){
+  if(txt==null||txt==="") return '<span class="missing">—</span>';
+  if(txt==="[@]") return '<span class="merged">(앞 절에 포함)</span>';
+  return lang==="ja"?ruby(txt):txt;
+}
+const hasKo=()=>!!(META&&META.ko);
+const available=id=>id!=="ko"||hasKo();
+function activeCols(){return S.order.filter(id=>S.cols[id]&&available(id))}
+function bookName(id,b){
+  if(id==="ko") return KO[b-1];
+  if(!META) return id==="ko"?KO[b-1]:"";
+  if(id==="en") return META.names.en[b-1];
+  return META.names[id][b-1];
+}
+// names follow the language order: 1st active = main, 2nd active = small subtitle
+function nameLangs(){const a=activeCols();return a.length?a:["ko"]}
+function isStack(){
+  if(S.layout==="stack") return true;
+  if(S.layout==="side") return false;
+  const n=activeCols().length;
+  return n>1 && innerWidth/n<230;
+}
+function applyLook(){
+  document.documentElement.dataset.theme=S.theme;
+  document.body.classList.toggle("noruby",!S.ruby);
+  document.body.classList.toggle("redletter",S.red);
+  document.body.classList.toggle("stack",isStack());
+  document.documentElement.style.setProperty("--fs",S.fs+"px");
+  const m=document.querySelector('meta[name=theme-color]')||document.head.appendChild(Object.assign(document.createElement("meta"),{name:"theme-color"}));
+  m.content=getComputedStyle(document.documentElement).getPropertyValue("--bg").trim();
+}
+function chipHTML(id){
+  const l=LANG[id], sub=id==="en"?S.en.toUpperCase():l.sub;
+  if(!available(id)) return `<button class="chip off-data" data-col="${id}" data-na="1">${l.label}<span class="sub">준비 중</span></button>`;
+  return `<button class="chip${S.cols[id]?" on":""}" data-col="${id}">${l.label}<span class="sub">${sub}</span></button>`;
+}
+function renderChips(){$("chips").innerHTML=S.order.map(chipHTML).join("")}
+function updateTitle(){
+  const b=S.book,c=S.ch,L=nameLangs();
+  $("whereMain").textContent=LANG[L[0]].chap(bookName(L[0],b),c);
+  $("whereSub").textContent=L[1]?LANG[L[1]].chap(bookName(L[1],b),c):"";
+}
+
+async function render(keepScroll){
+  const b=S.book,c=S.ch;
+  updateTitle();
+  location.hash=`b${b}-c${c}`;
+  store.set("book",b); store.set("ch",c);
+  let data;
+  try{ data=await fetchBook(b); }catch(e){ $("main").innerHTML='<div class="loading">본문을 불러오지 못했습니다. 새로고침해 주십시오.</div>'; return; }
+  if(S.book!==b||S.ch!==c) return;
+  const cols=activeCols();
+  if(!cols.length){ $("main").innerHTML='<div class="loading">위에서 언어를 하나 이상 켜 주십시오.</div>'; return; }
+  const src=id=>id==="en"?data[S.en]:data[id];
+  const nv=Math.max(...["ja","kjv","web","zh"].map(k=>(data[k][c-1]||[]).length));
+  const tpl=`repeat(${cols.length},minmax(0,1fr))`;
+  const head=`<div class="colhead" style="grid-template-columns:${tpl}">${cols.map(id=>`<div>${LANG[id].label} · ${id==="en"?S.en.toUpperCase():LANG[id].sub}</div>`).join("")}</div>`;
+  let rows="";
+  for(let v=1;v<=nv;v++){
+    rows+=`<div class="row${sel===v?" sel":""}" id="v${v}" data-v="${v}" style="grid-template-columns:${tpl}"><div class="rvn">${v}</div>`;
+    for(const id of cols){
+      const arr=src(id);
+      rows+=`<div class="cell" lang="${LANG[id].lang}"><span class="lt">${LANG[id].label}</span><span class="vn">${v}</span>${verseHTML(id,arr&&arr[c-1]?arr[c-1][v-1]:null)}</div>`;
+    }
+    rows+="</div>";
+  }
+  $("main").innerHTML=head+rows;
+  positionHead();
+  if(!keepScroll) scrollTo(0,0);
+  if(b<66) fetchBook(b+1).catch(()=>{});
+}
+function positionHead(){const h=document.querySelector("header").offsetHeight;const ch=document.querySelector(".colhead");if(ch)ch.style.top=h+"px"}
+
+function step(d){
+  if(!META) return;
+  let b=S.book,c=S.ch+d;
+  if(c<1){ if(b===1) return; b--; c=META.chapters[b-1]; }
+  else if(c>META.chapters[b-1]){ if(b===66) return; b++; c=1; }
+  S.book=b; S.ch=c; sel=null; render();
+}
+function go(b,c){S.book=b;S.ch=c;sel=null;closeAll();render()}
+
+/* ---------- chooser: list + expandable chapters ---------- */
+let chooserTest="ot";
+function openChooser(){
+  if(!META) return;
+  chooserTest=S.book<=39?"ot":"nt";
+  showBooks(S.book); $("ovBook").classList.add("open");
+  const cur=$("chooserBody").querySelector(".bi.cur"); if(cur) cur.scrollIntoView({block:"start"});
+}
+function chaptersHTML(b){
+  let h="";
+  for(let i=1;i<=META.chapters[b-1];i++) h+=`<button data-c="${i}" class="${b===S.book&&i===S.ch?"cur":""}">${i}</button>`;
+  return h;
+}
+function showBooks(openB){
+  [...$("testSeg").children].forEach(x=>x.classList.toggle("on",x.dataset.t===chooserTest));
+  const L=nameLangs();
+  const [a,z]=chooserTest==="ot"?[0,39]:[39,66];
+  $("chooserBody").innerHTML=(()=>{
+    let h=`<div class="blist">`;
+    for(let i=a;i<z;i++){
+      const b=i+1, n=META.chapters[i], open=b===openB&&n>1;
+      h+=`<div class="bi${b===S.book?" cur":""}${open?" open":""}" data-b="${b}">
+        <button class="bh"><b lang="${LANG[L[0]].lang}">${bookName(L[0],b)}</b>${L[1]?`<i class="sep">|</i><span lang="${LANG[L[1]].lang}">${bookName(L[1],b)}</span>`:"<span></span>"}<em class="cc">${n}</em><i class="chev">›</i></button>
+        <div class="chs">${open?chaptersHTML(b):""}</div></div>`;
+    }
+    return h+"</div>";
+  })();
+  $("chooserBody").scrollTop=0;
+}
+$("chooserBody").addEventListener("click",e=>{
+  const cb=e.target.closest("[data-c]");
+  if(cb){ go(+cb.closest(".bi").dataset.b,+cb.dataset.c); return; }
+  const bh=e.target.closest(".bh"); if(!bh) return;
+  const bi=bh.parentElement, b=+bi.dataset.b;
+  if(META.chapters[b-1]===1){ go(b,1); return; }
+  const wasOpen=bi.classList.contains("open");
+  $("chooserBody").querySelectorAll(".bi.open").forEach(x=>{x.classList.remove("open");x.querySelector(".chs").innerHTML=""});
+  if(!wasOpen){
+    bi.querySelector(".chs").innerHTML=chaptersHTML(b); bi.classList.add("open");
+    // keep the tapped row in view once the panel above it has collapsed
+    const body=$("chooserBody"), top=bi.offsetTop-body.offsetTop;
+    if(top<body.scrollTop||top>body.scrollTop+body.clientHeight-120) body.scrollTop=top-8;
+  }
+});
+$("testSeg").addEventListener("click",e=>{const t=e.target.closest("[data-t]");if(t){chooserTest=t.dataset.t;showBooks(chooserTest===(S.book<=39?"ot":"nt")?S.book:0)}});
+
+/* ---------- settings ---------- */
+$("themes").innerHTML=THEMES.map(([id,name,bg,fg])=>`<button class="th" data-th="${id}"><i style="background:${bg};color:${fg}"></i>${name}</button>`).join("");
+function syncSettings(){
+  [...$("themes").children].forEach(x=>x.classList.toggle("on",x.dataset.th===S.theme));
+  [...$("layoutSeg").children].forEach(x=>x.classList.toggle("on",x.dataset.l===S.layout));
+  [...$("enSeg").children].forEach(x=>x.classList.toggle("on",x.dataset.e===S.en));
+  $("swRuby").classList.toggle("on",S.ruby); $("swRed").classList.toggle("on",S.red);
+  $("fsVal").textContent=S.fs;
+}
+$("themes").onclick=e=>{const t=e.target.closest("[data-th]");if(!t)return;S.theme=t.dataset.th;save();syncSettings();applyLook()};
+$("layoutSeg").onclick=e=>{const t=e.target.closest("[data-l]");if(!t)return;S.layout=t.dataset.l;save();syncSettings();applyLook();render(true)};
+$("enSeg").onclick=e=>{const t=e.target.closest("[data-e]");if(!t)return;S.en=t.dataset.e;save();syncSettings();renderChips();render(true)};
+$("swRuby").onclick=()=>{S.ruby=!S.ruby;save();syncSettings();applyLook()};
+$("swRed").onclick=()=>{S.red=!S.red;save();syncSettings();applyLook()};
+$("fsDown").onclick=()=>{S.fs=Math.max(12,S.fs-1);save();syncSettings();applyLook()};
+$("fsUp").onclick=()=>{S.fs=Math.min(34,S.fs+1);save();syncSettings();applyLook()};
+
+/* ---------- language chips: tap = toggle, long-press + drag = reorder ---------- */
+const chips=$("chips");
+let lp=null; // {el,timer,x,y,dragging,grab,pid}
+let suppressClick=false;
+chips.addEventListener("contextmenu",e=>e.preventDefault());
+chips.addEventListener("pointerdown",e=>{
+  const el=e.target.closest(".chip"); if(!el||e.button>0) return;
+  lp={el,x:e.clientX,y:e.clientY,dragging:false,pid:e.pointerId};
+  lp.timer=setTimeout(()=>startDrag(e.clientX),420);
+});
+function startDrag(x){
+  if(!lp) return;
+  lp.dragging=true; suppressClick=true;
+  const r=lp.el.getBoundingClientRect(); lp.grab=x-r.left;
+  lp.el.classList.add("drag"); chips.classList.add("sorting");
+  lp.el.style.transform="scale(1.06)";
+  try{lp.el.setPointerCapture(lp.pid)}catch(e){}
+  try{navigator.vibrate&&navigator.vibrate(15)}catch(e){}
+}
+chips.addEventListener("pointermove",e=>{
+  if(!lp) return;
+  if(!lp.dragging){ if(Math.hypot(e.clientX-lp.x,e.clientY-lp.y)>8){clearTimeout(lp.timer);lp=null} return; }
+  e.preventDefault();
+  const el=lp.el;
+  // move element in DOM when the pointer passes another chip's middle
+  const others=[...chips.children].filter(c=>c!==el);
+  let idx=others.length;
+  for(let i=0;i<others.length;i++){const r=others[i].getBoundingClientRect();if(e.clientX<r.left+r.width/2){idx=i;break}}
+  const ref=others[idx]||null;
+  if(el.nextElementSibling!==ref || (ref===null && chips.lastElementChild!==el)) chips.insertBefore(el,ref);
+  el.style.transform="none";
+  const natural=el.getBoundingClientRect().left;
+  el.style.transform=`translateX(${e.clientX-lp.grab-natural}px) scale(1.06)`;
+});
+// keep the chips row from scrolling while a chip is being dragged
+chips.addEventListener("touchmove",e=>{if(lp&&lp.dragging)e.preventDefault()},{passive:false});
+function endDrag(){
+  if(!lp) return;
+  clearTimeout(lp.timer);
+  if(lp.dragging){
+    lp.el.classList.remove("drag"); lp.el.style.transform=""; chips.classList.remove("sorting");
+    const order=[...chips.children].map(c=>c.dataset.col);
+    if(order.join()!==S.order.join()){S.order=order;save();updateTitle();render(true)}
+    setTimeout(()=>{suppressClick=false},0);
+  }
+  lp=null;
+}
+chips.addEventListener("pointerup",endDrag);
+chips.addEventListener("pointercancel",endDrag);
+chips.addEventListener("click",e=>{
+  if(suppressClick){e.preventDefault();e.stopPropagation();suppressClick=false;return}
+  const t=e.target.closest("[data-col]"); if(!t||t.dataset.na) return;
+  S.cols[t.dataset.col]=!S.cols[t.dataset.col]; save(); renderChips(); applyLook(); render(true);
+},true);
+
+/* ---------- wiring ---------- */
+$("prev").onclick=()=>step(-1); $("next").onclick=()=>step(1);
+$("where").onclick=openChooser;
+$("openSet").onclick=()=>{syncSettings();$("ovSet").classList.add("open")};
+function closeAll(){document.querySelectorAll(".ov.open").forEach(o=>o.classList.remove("open"))}
+document.querySelectorAll(".ov").forEach(o=>o.addEventListener("click",e=>{if(e.target===o||e.target.closest("[data-close]"))closeAll()}));
+$("main").addEventListener("click",e=>{
+  if(getSelection().toString()) return;
+  const r=e.target.closest(".row"); if(!r) return;
+  const v=+r.dataset.v; sel=sel===v?null:v;
+  document.querySelectorAll(".row.sel").forEach(x=>x.classList.remove("sel")); if(sel) r.classList.add("sel");
+});
+addEventListener("keydown",e=>{
+  if(e.key==="Escape") closeAll();
+  if(document.querySelector(".ov.open")) return;
+  if(e.key==="ArrowLeft") step(-1); if(e.key==="ArrowRight") step(1);
+});
+let tx=0,ty=0,tt=0;
+$("main").addEventListener("touchstart",e=>{const t=e.touches[0];tx=t.clientX;ty=t.clientY;tt=Date.now()},{passive:true});
+$("main").addEventListener("touchend",e=>{
+  const t=e.changedTouches[0],dx=t.clientX-tx,dy=t.clientY-ty;
+  if(Date.now()-tt<600&&Math.abs(dx)>70&&Math.abs(dx)>Math.abs(dy)*1.8) step(dx<0?1:-1);
+},{passive:true});
+let rz; addEventListener("resize",()=>{clearTimeout(rz);rz=setTimeout(()=>{const was=document.body.classList.contains("stack");applyLook();positionHead();if(was!==isStack())render(true)},150)});
+function fromHash(){const m=/^#b(\d+)-c(\d+)$/.exec(location.hash);if(m){const b=+m[1],c=+m[2];if(b>=1&&b<=66&&c>=1){S.book=b;S.ch=c;return true}}return false}
+addEventListener("hashchange",()=>{const b=S.book,c=S.ch;if(fromHash()&&(b!==S.book||c!==S.ch))render()});
+
+/* ---------- offline: register the service worker and store every book on the device ---------- */
+const DATA_CACHE="bible-data-v1";
+let offBusy=false;
+function offMsg(t){ $("offState").textContent=t; }
+function banner(done,total,text){
+  const el=$("dl");
+  if(text===null){ el.hidden=true; return; }
+  el.hidden=false;
+  el.innerHTML=text+(total?`<span class="dlbar"><i style="width:${Math.round(done/total*100)}%"></i></span>`:"");
+}
+async function ensureOffline(){
+  if(offBusy) return;
+  if(!("caches" in window)){ offMsg("이 브라우저는 오프라인 저장을 지원하지 않습니다."); return; }
+  offBusy=true; $("offRetry").hidden=true;
+  try{ if(navigator.storage&&navigator.storage.persist) navigator.storage.persist(); }catch(e){}
+  let cache; try{ cache=await caches.open(DATA_CACHE); }catch(e){ offMsg("저장 공간을 사용할 수 없습니다."); offBusy=false; return; }
+  const urls=[]; for(let i=1;i<=66;i++) urls.push(new URL("data/"+String(i).padStart(2,"0")+".json",location.href).href);
+  const missing=[]; for(const u of urls){ if(!(await cache.match(u))) missing.push(u); }
+  let done=66-missing.length;
+  if(!missing.length){ offMsg("66권 모두 저장됨 · 인터넷 없이 읽을 수 있습니다."); offBusy=false; return; }
+  let failed=0;
+  for(const u of missing){
+    offMsg(`저장 중 ${done}/66권`); banner(done,66,`오프라인용 저장 중 ${done}/66`);
+    try{ const r=await fetch(u,{cache:"no-store"}); if(!r.ok) throw 0; await cache.put(u,r); done++; }
+    catch(e){ failed++; }
+  }
+  if(failed){
+    offMsg(`${done}/66권 저장됨 · 인터넷에 연결되면 '다시 저장'을 눌러 주십시오.`); $("offRetry").hidden=false;
+    banner(0,0,`일부 저장 실패 (${done}/66) · 설정에서 다시 저장`); setTimeout(()=>banner(0,0,null),5000);
+  }else{
+    offMsg("66권 모두 저장됨 · 인터넷 없이 읽을 수 있습니다.");
+    banner(0,0,"오프라인 저장 완료 ✓"); setTimeout(()=>banner(0,0,null),2500);
+  }
+  offBusy=false;
+}
+$("offRetry").onclick=ensureOffline;
+if("serviceWorker" in navigator && (location.protocol==="https:"||location.hostname==="localhost")){
+  navigator.serviceWorker.register("sw.js").catch(()=>{});
+  addEventListener("load",()=>setTimeout(ensureOffline,800));
+}else{
+  offMsg("웹 주소(https)에서 열었을 때만 오프라인 저장이 됩니다.");
+}
+
+fromHash(); applyLook(); renderChips();
+fetch("data/meta.json").then(r=>r.json()).then(m=>{META=m;renderChips();if(S.ch>META.chapters[S.book-1])S.ch=1;render()}).catch(()=>render());
+})();
+</script>
+</body>
+</html>
