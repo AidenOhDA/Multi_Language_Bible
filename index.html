@@ -55,10 +55,9 @@ nav.bottom{position:fixed;left:0;right:0;bottom:0;z-index:30;background:var(--pa
 
 /* ---------- reading area ---------- */
 main{max-width:1400px;margin:0 auto;padding:6px 10px calc(96px + var(--bot))}
-.colhead{display:grid;gap:18px;position:sticky;z-index:10;background:var(--bg);padding:8px 6px 6px;border-bottom:1px solid var(--line);font-size:12px;color:var(--muted);letter-spacing:.04em}
+.colhead{display:grid;gap:18px;position:sticky;z-index:10;top:var(--hh,0px);transition:top .25s ease;background:var(--bg);padding:8px 6px 6px;border-bottom:1px solid var(--line);font-size:12px;color:var(--muted);letter-spacing:.04em}
 .row{display:grid;gap:18px;padding:10px 6px;border-radius:10px;scroll-margin-top:110px}
 .row + .row{border-top:1px solid color-mix(in srgb,var(--line) 60%,transparent)}
-.row.sel{background:var(--hl);border-color:transparent}
 .cell{font-size:var(--fs);line-height:1.75;min-width:0;overflow-wrap:anywhere}
 .vn{font-size:.62em;font-weight:700;color:var(--accent);margin-right:.35em;vertical-align:.25em;font-family:-apple-system,sans-serif}
 .cell[lang=ja]{font-family:"Hiragino Mincho ProN","Yu Mincho","YuMincho","Noto Serif JP","Noto Serif CJK JP",serif;line-height:2.05}
@@ -90,7 +89,31 @@ body.stack .cell .lt{display:inline-block;font:600 10px/1 -apple-system,sans-ser
 .offbtn{padding:7px 12px;border:1px solid var(--line);border-radius:9px;font-size:13px;color:var(--accent);flex:none}
 
 /* ---------- overlays ---------- */
-.ov{position:fixed;inset:0;z-index:50;background:rgba(0,0,0,.35);display:none}
+.ov{position:fixed;inset:0;z-index:50;background:rgba(0,0,0,.35);display:none;overscroll-behavior:contain;touch-action:none}
+.ov .sh-body{overscroll-behavior:contain;touch-action:pan-y}
+body.locked{position:fixed;left:0;right:0;overflow:hidden}
+/* bars slide away while reading */
+header,nav.bottom{transition:transform .25s ease}
+body.bars-hidden header{transform:translateY(-100%)}
+body.bars-hidden nav.bottom{transform:translateY(110%)}
+body.bars-hidden .colhead{top:var(--top)}
+body.bars-hidden .dl{bottom:calc(12px + var(--bot))}
+/* side notches in landscape */
+header,main,nav.bottom{padding-left:env(safe-area-inset-left,0px);padding-right:env(safe-area-inset-right,0px)}
+/* short landscape screens: slim bars */
+@media (orientation:landscape) and (max-height:540px){
+  .bar{padding:2px 8px}
+  .nav,.icon{width:40px;height:36px;font-size:20px}
+  #where{padding:3px 8px;font-size:15px;display:flex;align-items:baseline;justify-content:center;gap:10px}
+  #where span,#where small{display:inline-block;min-width:0}
+  #where small{margin:0;font-size:12px}
+  .chips{padding:4px 10px}
+  .chip{flex-direction:row;gap:5px;padding:4px 8px;border-radius:999px}
+  .chip .sub{margin:0}
+  main{padding-bottom:calc(64px + var(--bot))}
+  .dl{bottom:calc(52px + var(--bot))}
+  .sheet{max-height:94vh}
+}
 .ov.open{display:block}
 .sheet{position:absolute;left:0;right:0;bottom:0;max-height:86vh;background:var(--panel);border-radius:18px 18px 0 0;display:flex;flex-direction:column;box-shadow:0 -10px 40px rgba(0,0,0,.18);max-width:760px;margin:0 auto;padding-bottom:var(--bot)}
 .sh-head{display:flex;align-items:center;gap:8px;padding:14px 16px 10px;border-bottom:1px solid var(--line)}
@@ -174,6 +197,8 @@ body.stack .cell .lt{display:inline-block;font:600 10px/1 -apple-system,sans-ser
     <div class="sh-head"><h2>보기 설정</h2><button class="x" data-close>×</button></div>
     <div class="sh-body">
       <div class="set col"><div>배경 색</div><div class="themes" id="themes"></div></div>
+      <div class="set col"><div>화면 회전<span class="hint" id="orHint"></span></div>
+        <div class="seg" id="orSeg" style="align-self:flex-start;margin-top:8px"><button data-o="auto">자동</button><button data-o="portrait">세로 고정</button><button data-o="landscape">가로 고정</button></div></div>
       <div class="set"><div>배치<span class="hint">나란히: 언어별 열 · 세로: 절마다 언어를 위아래로</span></div>
         <div class="seg" id="layoutSeg"><button data-l="auto">자동</button><button data-l="side">나란히</button><button data-l="stack">세로</button></div></div>
       <div class="set"><div>영어 번역본<span class="hint">KJV 흠정역 · WEB 현대 영어</span></div>
@@ -209,12 +234,13 @@ const S={
   en:store.get("en","kjv"), layout:store.get("layout","auto"),
   ruby:store.get("ruby",true), red:store.get("red",true),
   theme:store.get("theme",store.get("dark",false)?"dark":"ivory"),
-  fs:store.get("fs",18)
+  fs:store.get("fs",18),
+  orient:store.get("orient","auto")
 };
 if(!Array.isArray(S.order)||S.order.length!==4||!["ja","en","ko","zh"].every(x=>S.order.includes(x))) S.order=["ja","en","ko","zh"];
-let META=null; const cache=new Map(); let sel=null;
+let META=null; const cache=new Map();
 const $=id=>document.getElementById(id);
-function save(){for(const k of["cols","order","en","layout","ruby","red","theme","fs"]) store.set(k,S[k])}
+function save(){for(const k of["cols","order","en","layout","ruby","red","theme","fs","orient"]) store.set(k,S[k])}
 
 function fetchBook(n){
   if(cache.has(n)) return cache.get(n);
@@ -281,7 +307,7 @@ async function render(keepScroll){
   const head=`<div class="colhead" style="grid-template-columns:${tpl}">${cols.map(id=>`<div>${LANG[id].label} · ${id==="en"?S.en.toUpperCase():LANG[id].sub}</div>`).join("")}</div>`;
   let rows="";
   for(let v=1;v<=nv;v++){
-    rows+=`<div class="row${sel===v?" sel":""}" id="v${v}" data-v="${v}" style="grid-template-columns:${tpl}"><div class="rvn">${v}</div>`;
+    rows+=`<div class="row" id="v${v}" data-v="${v}" style="grid-template-columns:${tpl}"><div class="rvn">${v}</div>`;
     for(const id of cols){
       const arr=src(id);
       rows+=`<div class="cell" lang="${LANG[id].lang}"><span class="lt">${LANG[id].label}</span><span class="vn">${v}</span>${verseHTML(id,arr&&arr[c-1]?arr[c-1][v-1]:null)}</div>`;
@@ -290,26 +316,26 @@ async function render(keepScroll){
   }
   $("main").innerHTML=head+rows;
   positionHead();
-  if(!keepScroll) scrollTo(0,0);
+  if(!keepScroll){ scrollTo(0,0); setBars(false); }
   if(b<66) fetchBook(b+1).catch(()=>{});
 }
-function positionHead(){const h=document.querySelector("header").offsetHeight;const ch=document.querySelector(".colhead");if(ch)ch.style.top=h+"px"}
+function positionHead(){document.documentElement.style.setProperty("--hh",document.querySelector("header").offsetHeight+"px")}
 
 function step(d){
   if(!META) return;
   let b=S.book,c=S.ch+d;
   if(c<1){ if(b===1) return; b--; c=META.chapters[b-1]; }
   else if(c>META.chapters[b-1]){ if(b===66) return; b++; c=1; }
-  S.book=b; S.ch=c; sel=null; render();
+  S.book=b; S.ch=c;  render();
 }
-function go(b,c){S.book=b;S.ch=c;sel=null;closeAll();render()}
+function go(b,c){S.book=b;S.ch=c;closeAll();render()}
 
 /* ---------- chooser: list + expandable chapters ---------- */
 let chooserTest="ot";
 function openChooser(){
   if(!META) return;
   chooserTest=S.book<=39?"ot":"nt";
-  showBooks(S.book); $("ovBook").classList.add("open");
+  showBooks(S.book); openSheet("ovBook");
   const cur=$("chooserBody").querySelector(".bi.cur"); if(cur) cur.scrollIntoView({block:"start"});
 }
 function chaptersHTML(b){
@@ -355,6 +381,7 @@ $("themes").innerHTML=THEMES.map(([id,name,bg,fg])=>`<button class="th" data-th=
 function syncSettings(){
   [...$("themes").children].forEach(x=>x.classList.toggle("on",x.dataset.th===S.theme));
   [...$("layoutSeg").children].forEach(x=>x.classList.toggle("on",x.dataset.l===S.layout));
+  [...$("orSeg").children].forEach(x=>x.classList.toggle("on",x.dataset.o===S.orient));
   [...$("enSeg").children].forEach(x=>x.classList.toggle("on",x.dataset.e===S.en));
   $("swRuby").classList.toggle("on",S.ruby); $("swRed").classList.toggle("on",S.red);
   $("fsVal").textContent=S.fs;
@@ -425,14 +452,38 @@ chips.addEventListener("click",e=>{
 /* ---------- wiring ---------- */
 $("prev").onclick=()=>step(-1); $("next").onclick=()=>step(1);
 $("where").onclick=openChooser;
-$("openSet").onclick=()=>{syncSettings();$("ovSet").classList.add("open")};
-function closeAll(){document.querySelectorAll(".ov.open").forEach(o=>o.classList.remove("open"))}
+$("openSet").onclick=()=>{syncSettings();openSheet("ovSet")};
+let lockedY=0;
+function openSheet(id){
+  if(!document.body.classList.contains("locked")){
+    lockedY=scrollY; document.body.style.top=(-lockedY)+"px"; document.body.classList.add("locked");
+  }
+  $(id).classList.add("open");
+}
+function closeAll(){
+  document.querySelectorAll(".ov.open").forEach(o=>o.classList.remove("open"));
+  if(document.body.classList.contains("locked")){
+    document.body.classList.remove("locked"); document.body.style.top=""; scrollTo(0,lockedY);
+  }
+}
+/* ---------- bars: hide when the reader scrolls, tap the text to bring them back ---------- */
+let barsHidden=false, lastY=scrollY, moved=0;
+function setBars(hide){
+  moved=0;
+  if(hide===barsHidden) return;
+  barsHidden=hide; document.body.classList.toggle("bars-hidden",hide);
+}
+addEventListener("scroll",()=>{
+  if(document.body.classList.contains("locked")) return;
+  const y=scrollY, dy=Math.abs(y-lastY); lastY=y;
+  if(y<8){ setBars(false); return; }
+  if(barsHidden) return;
+  moved+=dy; if(moved>28) setBars(true);
+},{passive:true});
 document.querySelectorAll(".ov").forEach(o=>o.addEventListener("click",e=>{if(e.target===o||e.target.closest("[data-close]"))closeAll()}));
 $("main").addEventListener("click",e=>{
   if(getSelection().toString()) return;
-  const r=e.target.closest(".row"); if(!r) return;
-  const v=+r.dataset.v; sel=sel===v?null:v;
-  document.querySelectorAll(".row.sel").forEach(x=>x.classList.remove("sel")); if(sel) r.classList.add("sel");
+  setBars(!barsHidden);
 });
 addEventListener("keydown",e=>{
   if(e.key==="Escape") closeAll();
@@ -485,6 +536,22 @@ async function ensureOffline(){
   offBusy=false;
 }
 $("offRetry").onclick=ensureOffline;
+
+/* ---------- rotation lock ---------- */
+const isIOS=/iPad|iPhone|iPod/.test(navigator.userAgent)||(navigator.platform==="MacIntel"&&navigator.maxTouchPoints>1);
+const canLock=!isIOS&&!!(screen.orientation&&screen.orientation.lock);
+async function applyOrient(){
+  const hint=$("orHint");
+  if(!canLock){
+    hint.textContent="iPhone·iPad에서는 앱 안에서 회전을 고정할 수 없습니다. 제어 센터의 '화면 방향 잠금'을 사용해 주십시오.";
+    [...$("orSeg").children].forEach(b=>b.disabled=true); $("orSeg").style.opacity=.45; return;
+  }
+  if(S.orient==="auto"){ try{screen.orientation.unlock()}catch(e){} hint.textContent="기기 방향에 따라 회전합니다."; return; }
+  try{ await screen.orientation.lock(S.orient); hint.textContent=S.orient==="portrait"?"세로로 고정되었습니다.":"가로로 고정되었습니다."; }
+  catch(e){ hint.textContent="홈 화면에 설치한 앱으로 실행했을 때만 고정할 수 있습니다."; }
+}
+$("orSeg").onclick=e=>{const t=e.target.closest("[data-o]");if(!t||t.disabled)return;S.orient=t.dataset.o;save();syncSettings();applyOrient()};
+applyOrient();
 if("serviceWorker" in navigator && (location.protocol==="https:"||location.hostname==="localhost")){
   navigator.serviceWorker.register("sw.js").catch(()=>{});
   addEventListener("load",()=>setTimeout(ensureOffline,800));
